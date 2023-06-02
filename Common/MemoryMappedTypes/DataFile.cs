@@ -1,3 +1,6 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,6 +20,67 @@ public delegate bool MapFeatureDelegate(MapFeatureData featureData);
 /// <summary>
 ///     Aggregation of all the data needed to render a map feature
 /// </summary>
+
+public enum MapFeatureDataTypes
+{
+    Highway,
+    Water,
+    Railway,
+    Place,
+    City,
+    Town,
+    Locality,
+    Hamlet,
+    Natural,
+    Boundary,
+    Forest,
+    Landuse,
+    Orchard,
+    Residential,
+    Cemetery,
+    Industrial,
+    Commercial,
+    Square,
+    Construction,
+    Military,
+    Quarry,
+    Brownfield,
+    Farm,
+    Meadow,
+    Grass,
+    Greenfield,
+    RecreationGround,
+    WinterSports,
+    Allotments,
+    Reservoir,
+    Basin,
+    Building,
+    Leisure,
+    Amenity,
+    Motorway,
+    Trunk,
+    Primary,
+    Secondary,
+    Tertiary,
+    Unclassified,
+    Road,
+    Administrative,
+    Fell,
+    Grassland,
+    Heath,
+    Moor,
+    Scrub,
+    Wetland,
+    Wood,
+    TreeRow,
+    BareRock,
+    Rock,
+    Scree,
+    Beach,
+    Sand
+}
+
+
 public readonly ref struct MapFeatureData
 {
     public long Id { get; init; }
@@ -24,8 +88,11 @@ public readonly ref struct MapFeatureData
     public GeometryType Type { get; init; }
     public ReadOnlySpan<char> Label { get; init; }
     public ReadOnlySpan<Coordinate> Coordinates { get; init; }
-    public Dictionary<string, string> Properties { get; init; }
+    public Dictionary<MapFeatureDataTypes, List<MapFeatureDataTypes>> Properties { get; init; }
+
+    public Dictionary<string, string> StringProperties { get; init; }
 }
+
 
 /// <summary>
 ///     Represents a file with map data organized in the following format:<br />
@@ -181,11 +248,54 @@ public unsafe class DataFile : IDisposable
 
                 if (isFeatureInBBox)
                 {
-                    var properties = new Dictionary<string, string>(feature->PropertyCount);
+                    var properties = new Dictionary<MapFeatureDataTypes, List<MapFeatureDataTypes>>(feature->PropertyCount);
+                    var stringProperties = new Dictionary<string, string>(feature->PropertyCount);
+
                     for (var p = 0; p < feature->PropertyCount; ++p)
                     {
                         GetProperty(header.Tile.Value.StringsOffsetInBytes, header.Tile.Value.CharactersOffsetInBytes, p * 2 + feature->PropertiesOffset, out var key, out var value);
-                        properties.Add(key.ToString(), value.ToString());
+
+                        MapFeatureDataTypes? mapFeatureKey = null;
+                        MapFeatureDataTypes? mapFeatureValue = null;
+
+                        foreach (MapFeatureDataTypes mapFeatureDataType in Enum.GetValues(typeof(MapFeatureDataTypes)))
+                        {
+                            if (key.StartsWith(mapFeatureDataType.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                mapFeatureKey = mapFeatureDataType;
+                            }
+
+                            if (value.StartsWith(mapFeatureDataType.ToString(), StringComparison.OrdinalIgnoreCase))
+                            {
+                                mapFeatureValue = mapFeatureDataType;
+                            }
+                        }
+
+                        if (mapFeatureKey != null)
+                        {
+                            if (properties.ContainsKey(mapFeatureKey.Value))
+                            {
+                                if (mapFeatureValue != null)
+                                {
+                                    properties[mapFeatureKey.Value].Add(mapFeatureValue.Value);
+                                }
+                            }
+                            else
+                            {
+                                List<MapFeatureDataTypes> mapFeatures = new List<MapFeatureDataTypes>();
+
+                                if (mapFeatureValue != null)
+                                { 
+                                    mapFeatures.Add(mapFeatureValue.Value);
+                                }
+
+                                properties.Add(mapFeatureKey.Value, mapFeatures);
+                            }
+                        }
+                        else
+                        {
+                            stringProperties.Add(key.ToString(), value.ToString());
+                        }
                     }
 
                     if (!action(new MapFeatureData
@@ -194,8 +304,9 @@ public unsafe class DataFile : IDisposable
                             Label = label,
                             Coordinates = coordinates,
                             Type = feature->GeometryType,
-                            Properties = properties
-                        }))
+                            Properties = properties,
+                            StringProperties = stringProperties
+                    }))
                     {
                         break;
                     }

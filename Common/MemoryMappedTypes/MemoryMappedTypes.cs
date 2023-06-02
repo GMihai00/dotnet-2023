@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Mapster.Common.MemoryMappedTypes;
 
@@ -117,9 +118,52 @@ public struct PropertyEntryList
 public struct MapFeature
 {
     // https://wiki.openstreetmap.org/wiki/Key:highway
-    public static string[] HighwayTypes =
+    public readonly static MapFeatureDataTypes[] HighwayTypes =
     {
-        "motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "road"
+        MapFeatureDataTypes.Motorway,
+        MapFeatureDataTypes.Trunk,
+        MapFeatureDataTypes.Primary,
+        MapFeatureDataTypes.Secondary,
+        MapFeatureDataTypes.Tertiary,
+        MapFeatureDataTypes.Unclassified,
+        MapFeatureDataTypes.Residential,
+        MapFeatureDataTypes.Road
+    };
+
+    public readonly static MapFeatureDataTypes[] ForestTypes =
+    {
+        MapFeatureDataTypes.Forest,
+        MapFeatureDataTypes.Orchard
+    };
+
+    public readonly static MapFeatureDataTypes[] ResidentialLanduseTypes =
+    {
+        MapFeatureDataTypes.Residential,
+        MapFeatureDataTypes.Cemetery,
+        MapFeatureDataTypes.Industrial,
+        MapFeatureDataTypes.Commercial,
+        MapFeatureDataTypes.Square,
+        MapFeatureDataTypes.Construction,
+        MapFeatureDataTypes.Military,
+        MapFeatureDataTypes.Quarry,
+        MapFeatureDataTypes.Brownfield
+    };
+
+    public readonly static MapFeatureDataTypes[] PlainLanduseTypes =
+    {
+        MapFeatureDataTypes.Farm,
+        MapFeatureDataTypes.Meadow,
+        MapFeatureDataTypes.Grass,
+        MapFeatureDataTypes.Greenfield,
+        MapFeatureDataTypes.RecreationGround,
+        MapFeatureDataTypes.WinterSports,
+        MapFeatureDataTypes.Allotments
+    };
+
+    public readonly static MapFeatureDataTypes[] WaterLanduseTypes =
+{
+        MapFeatureDataTypes.Reservoir,
+        MapFeatureDataTypes.Basin
     };
 
     [FieldOffset(0)] public long Id;
